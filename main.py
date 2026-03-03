@@ -35,7 +35,7 @@ def create_tunnel(jump_client, TARGET_HOST):
     )
     return chan
 
-def connect_to_target_via_tunnel(jump_client, TARGET_HOST):
+def connect_to_target_via_tunnel(jump_client, TARGET_HOST, command_set):
     command_set = load_command_set('show_ints.txt')
     chan = None
     net_conn = None
@@ -55,24 +55,56 @@ def connect_to_target_via_tunnel(jump_client, TARGET_HOST):
         net_conn.enable() # Enable mode
         for cmd in command_set:
             output = net_conn.send_command(cmd)
-            print(f"Output for '{cmd}':\n{output}\n")
+            # print(f"Output for '{cmd}':\n{output}\n")
+    except Exception as e:
+        print(f"Error connecting to {TARGET_HOST} via netgate: {e}")
+        return None
     finally:
         if net_conn:
             net_conn.disconnect()
         if chan:
             chan.close()
+    return output
     
 def load_command_set(file_path):
     with open(file_path, 'r') as f:
         commands = [line.strip() for line in f if line.strip()]
     return commands
 
+def read_from_file(file_path):
+    with open(file_path, 'r') as f:
+        data = f.read()
+    return data
+
+def write_to_file(file_path, data):
+    with open(file_path, 'a') as f:
+        f.write(data)
+
+def check_ip_addresses(data):
+    lines = data.splitlines()[1:]
+    interfaces = [line.split()[1] for line in lines]
+    return interfaces
+
+def load_hosts(file_path):
+    data = read_from_file(file_path)
+    hosts = [data.split()[0] for data in data.splitlines()  if data.strip()]
+    return hosts
+
 def main():
-    target_hosts = ["172.16.224.215"]
+    target_hosts = load_hosts('hosts.txt')
+    command_set = load_command_set('show_ints.txt')
     jump_client = create_jump_client()
     try:
         for target in target_hosts:
-            connect_to_target_via_tunnel(jump_client, target)
+            output = connect_to_target_via_tunnel(jump_client, target, command_set)
+            if output:
+                print(output)
+                interfaces = check_ip_addresses(output)
+                print(interfaces)
+                if len(interfaces) > 1:
+                    write_to_file('output.txt', output + '\n')
+            else:
+                continue
     finally:
         try:
             jump_client.close()
@@ -81,4 +113,3 @@ def main():
             pass
 
 main()
-
