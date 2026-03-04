@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import paramiko
 from netmiko import ConnectHandler
+from file_utils import *
 
 load_dotenv()
 #Edits made in dev branch
@@ -64,31 +65,12 @@ def connect_to_target_via_tunnel(jump_client, TARGET_HOST, command_set):
             net_conn.disconnect()
         if chan:
             chan.close()
-    return output
-    
-def load_command_set(file_path):
-    with open(file_path, 'r') as f:
-        commands = [line.strip() for line in f if line.strip()]
-    return commands
-
-def read_from_file(file_path):
-    with open(file_path, 'r') as f:
-        data = f.read()
-    return data
-
-def write_to_file(file_path, data):
-    with open(file_path, 'a') as f:
-        f.write(data)
+    return output    
 
 def check_ip_addresses(data):
     lines = data.splitlines()[1:]
     interfaces = [line.split()[1] for line in lines]
     return interfaces
-
-def load_hosts(file_path):
-    data = read_from_file(file_path)
-    hosts = [data.split()[0] for data in data.splitlines()  if data.strip()]
-    return hosts
 
 def main():
     target_hosts = load_hosts('hosts.txt')
@@ -112,4 +94,4 @@ def main():
             print(f"Error closing jump client: {e}")    
             pass
 
-main()
+# main()
