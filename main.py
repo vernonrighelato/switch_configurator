@@ -2,7 +2,9 @@ import os
 from dotenv import load_dotenv
 import paramiko
 from netmiko import ConnectHandler
-from file_utils import *
+from data_utils import *
+from file_utils import load_hosts, write_tuple
+from config_utils import add_vlan
 
 load_dotenv()
 #Edits made in dev branch
@@ -37,7 +39,8 @@ def create_tunnel(jump_client, TARGET_HOST):
     return chan
 
 def connect_to_target_via_tunnel(jump_client, TARGET_HOST, command_set):
-    command_set = load_command_set('show_ints.txt')
+    # command_set = load_command_set('show_ints.txt')
+    output_strings = []
     chan = None
     net_conn = None
     try:
@@ -57,6 +60,7 @@ def connect_to_target_via_tunnel(jump_client, TARGET_HOST, command_set):
         for cmd in command_set:
             output = net_conn.send_command(cmd)
             # print(f"Output for '{cmd}':\n{output}\n")
+            output_strings.append(output)
     except Exception as e:
         print(f"Error connecting to {TARGET_HOST} via netgate: {e}")
         return None
@@ -65,26 +69,21 @@ def connect_to_target_via_tunnel(jump_client, TARGET_HOST, command_set):
             net_conn.disconnect()
         if chan:
             chan.close()
-    return output    
+    return output_strings
 
-def check_ip_addresses(data):
-    lines = data.splitlines()[1:]
-    interfaces = [line.split()[1] for line in lines]
-    return interfaces
+
 
 def main():
-    target_hosts = load_hosts('hosts.txt')
-    command_set = load_command_set('show_ints.txt')
+    hosts_and_port_channels = []
+    hosts_output = []
+    target_hosts = load_hosts('hosts.txt')  
+    command_set = ['sh vlan id 346', 'sh etherchan sum']
     jump_client = create_jump_client()
     try:
         for target in target_hosts:
-            output = connect_to_target_via_tunnel(jump_client, target, command_set)
-            if output:
-                print(output)
-                interfaces = check_ip_addresses(output)
-                print(interfaces)
-                if len(interfaces) > 1:
-                    write_to_file('output.txt', output + '\n')
+            output_strings = connect_to_target_via_tunnel(jump_client, target, command_set)
+            if output_strings:
+                hosts_output.append((target, output_strings))              
             else:
                 continue
     finally:
@@ -93,5 +92,19 @@ def main():
         except Exception as e:
             print(f"Error closing jump client: {e}")    
             pass
-
-# main()
+    #validate output
+    for target, output_strings in hosts_output:
+       
+        if vlan_present(output_strings[0]):
+            print('Vlan346 is present')
+            continue
+        else:           
+            channel_ids = get_port_channel_ids(output_strings[1])            
+            if channel_ids:
+                print((target, channel_ids))
+                write_tuple('hosts_and_channels.txt', (target, channel_ids))                            
+                # config_string = add_vlan(346, "TOTP", channel_ids[1])
+                # print(config_string)                   
+            else:
+                print("No port channels found")
+main()

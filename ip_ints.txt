@@ -1,0 +1,11 @@
+Interface              IP-Address      OK? Method Status                Protocol
+Vlan99                 172.16.224.77   YES NVRAM  up                    up      
+Vlan1501               10.140.7.254    YES manual up                    up      
+Vlan1502               10.140.11.254   YES manual up                    up      
+Vlan1530               10.140.100.254  YES manual up                    up      
+Vlan1531               10.140.101.254  YES manual up                    up      
+Vlan1532               10.140.102.254  YES manual up                    up      
+Vlan1533               10.140.103.254  YES manual up                    up      
+Vlan1549               10.140.119.30   YES manual up                    up      
+TwentyFiveGigE1/0/2    10.255.123.9    YES NVRAM  up                    up      
+Port-channel45         10.255.123.10   YES manual up                    up      
